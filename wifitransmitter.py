@@ -41,10 +41,10 @@ def WifiTransmitter(*args):
     if level >= 1:
         bits = np.unpackbits(np.array([ord(c) for c in message], dtype=np.uint8))
         # bits: binary represent of chars, padding 0 at the end
-        print("bits_1 length: ", len(bits))
+        # print("bits_1 length: ", len(bits))
 
         bits = np.pad(bits, (0, 2*nfft-len(bits)%(2*nfft)),'constant')
-        print("bits_2 length: ", len(bits))
+        # print("bits_2 length: ", len(bits))
         # len(bits) == 2 * nfft
 
         nsym = int(len(bits)/(2*nfft))
@@ -70,6 +70,7 @@ def WifiTransmitter(*args):
         output = np.concatenate((output[:2*nfft],coded_message))
         # concatenate with length
         output = np.concatenate((preamble, output))
+        print("output before QAM modulation is: ", output)
         # concatenate with preamble
         mod = comm.modulation.QAMModem(4)
         # QAM Modulation
