@@ -29,39 +29,50 @@ def WifiTransmitter(*args):
     if level>4 or level<1:
         raise Exception("Error:Invalid Level, must be 1-4")
 
-    
+
     nfft = 64
     Interleave = np.reshape(np.transpose(np.reshape(np.arange(1, 2*nfft+1, 1),[-1,4])),[-1,])
-    print("Interleave: " + Interleave)
-    # Interleave: 4 * n, then unpack to 1 * 4n
-    # array of indices
+    # arange->reshape->transpose->reshape
+    # Interleave: n * 4 --> 4 * n, then reshape to 1 * 4n
+    # print("Interleave: ", Interleave)
     length = len(message)
     preamble = np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1,1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1])
     cc1 = check.Trellis(np.array([3]),np.array([[0o7,0o5]]))
     if level >= 1:
         bits = np.unpackbits(np.array([ord(c) for c in message], dtype=np.uint8))
+        # bits: binary represent of chars, padding 0 at the end
+        print("bits_1 length: ", len(bits))
+
         bits = np.pad(bits, (0, 2*nfft-len(bits)%(2*nfft)),'constant')
-        # bits: binary representation of chars, padding 0 at the end
+        print("bits_2 length: ", len(bits))
         # len(bits) == 2 * nfft
+
         nsym = int(len(bits)/(2*nfft))
-	    # num of symbols
+        # num of symbols
         # chunks of packets
         output = np.zeros(shape=(len(bits),))
         for i in range(nsym):
             symbol = bits[i*2*nfft:(i+1)*2*nfft]
             output[i*2*nfft:(i+1)*2*nfft] = symbol[Interleave-1]
-	#interleave is a 
-        # abc 3,2,1 --> 1, 2, 3
+        # print("symbol is: ", symbol)
+        # print("output_1 is: ", output)
         len_binary = np.array(list(np.binary_repr(length).zfill(2*nfft))).astype(np.int8)
+        # print("len_binary is: ", len_binary)
         output = np.concatenate((len_binary, output))
-    
+        # print("output is: ", output)
+        # print("len_binary length: output length: ", len(len_binary), len(output))
+
     if level >= 2:
         coded_message = check.conv_encode(output[2*nfft:].astype(bool), cc1)
+        # convolutional encoding every bits except for length bits
         coded_message = coded_message[:-6]
         # why [:-6]?
         output = np.concatenate((output[:2*nfft],coded_message))
+        # concatenate with length
         output = np.concatenate((preamble, output))
+        # concatenate with preamble
         mod = comm.modulation.QAMModem(4)
+        # QAM Modulation
         output = mod.modulate(output.astype(bool))
         
     if level >= 3:
