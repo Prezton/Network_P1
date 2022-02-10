@@ -20,7 +20,6 @@ def WifiReceiver(output, level):
         start_sign = mod.modulate(preamble.astype(bool))
         start_sign = np.fft.ifft(start_sign)
         max_correlatd_value = 0
-        # print("test", np.shape(output[:slide_window]), np.shape(start_sign))
 
         correlation_array = np.absolute(np.correlate(output, start_sign))
         for i in range(len(correlation_array)):
@@ -28,7 +27,7 @@ def WifiReceiver(output, level):
                 max_correlatd_value = correlation_array[i]
                 noise_pad_begin_length = i
         output = output[noise_pad_begin_length:]
-        print("decoded noise length: ", noise_pad_begin_length)
+        print("decoded starting noise length: ", noise_pad_begin_length)
 
     if level >= 3:
         nsym = int(len(output)/nfft)
@@ -37,17 +36,25 @@ def WifiReceiver(output, level):
             output[i*nfft:(i+1)*nfft] = np.fft.fft(symbol)
 
     if level >= 2:
-        # Conv Encoding (1/2 rate) + 4QAM Modulation (2bits -> 1 complex num)
-        # Soft viterbi decoding
-        mod = comm.modulation.QAMModem(4)
+
         # Remove Preamble
         tmp_message = np.split(output, [len(preamble) // 2])[1]
         [encoded_length, encoded_message] = np.split(tmp_message, [nfft])
-        decoded_message = softViterbiDecode(encoded_message)
+
+
+        mod = comm.modulation.QAMModem(4)
         decoded_length = mod.demodulate(encoded_length, 'hard')
-        # Split out length
-        # print(decoded_length, decoded_message)
-        output = np.concatenate((np.array(decoded_length, dtype=np.uint8), np.array(decoded_message, dtype=np.uint8)))
+        length_binary = decoded_length.astype(np.int8)
+        length_character = [str(c) for c in length_binary]
+        length_character = "".join(length_character)
+        length = int(length_character, 2)
+        print("decoded message length: ", length)
+
+        # Soft Viterbi Decoding
+        # Split out ending noises, * 8 * 2 is from unpack() int lvl1 (1->8 bits) and conv_encodin (1->2 bits)
+        decoded_message = softViterbiDecode(encoded_message[:length * 8 * 2])
+
+        output = np.concatenate((np.array(decoded_length, dtype=np.int8), np.array(decoded_message, dtype=np.uint8)))
 
 
     if level >= 1:
@@ -58,7 +65,7 @@ def WifiReceiver(output, level):
 
         # reverse of binary_repr
         length = int(length_character, 2)
-        print("decoded message length: ", length)
+
         output_binary = output_binary.astype(np.int8)
 
         # num of symbols
@@ -111,7 +118,7 @@ def softViterbiDecode(message):
         if node_metric[node] < min_metric:
             min_node = node
             min_metric = node_metric[node]
-    # print(min_node, min_metric)
+
     idx = -1
     decoded_result = []
     decoded_length = len(message)
@@ -121,7 +128,7 @@ def softViterbiDecode(message):
         min_node = prev_branch
         idx -= 1
     decoded_result = decoded_result[::-1]
-    # print("decoded result length: ", len(decoded_result))
+
     return np.asarray(decoded_result)
 
 
@@ -133,7 +140,7 @@ def softViterbiDecode(message):
 if __name__ == "__main__":
     # txsignal = wifitransmitter.WifiTransmitter('abcdefg', 4)
     # print(txsignal)
-    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('123,,,]\\\///[8971239812798471298473782146459718326498712364897123694786312897461238974678912364897123634897612389476123897467891236489712634897612389746', 4, 15)
+    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('123,,,]\\\///[8971239812798471298473782146459718326498712364897123694786312897461238974678912364897123634897612389476123897467891236489712634897612389746', 4, 10)
     print("input message length: ", total_length)
     print("actual noise length: ", padding_length)
     print(WifiReceiver(txsignal, 4))
