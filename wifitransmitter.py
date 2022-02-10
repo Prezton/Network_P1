@@ -69,7 +69,7 @@ def WifiTransmitter(*args):
         # why [:-6]?
         output = np.concatenate((output[:2*nfft],coded_message))
         # concatenate with length
-        print("output before QAM modulation and preamble is: ", output, "length is: ", len(output))
+        # print("output before QAM modulation and preamble is: ", output, "length is: ", len(output))
         output = np.concatenate((preamble, output))
         # concatenate with preamble
         mod = comm.modulation.QAMModem(4)
