@@ -28,6 +28,7 @@ def WifiReceiver(output, level):
                 noise_pad_begin_length = i
         output = output[noise_pad_begin_length:]
         print("decoded starting noise length: ", noise_pad_begin_length)
+        begin_zero_padding = noise_pad_begin_length
 
     if level >= 3:
         nsym = int(len(output)/nfft)
@@ -140,7 +141,7 @@ def softViterbiDecode(message):
 if __name__ == "__main__":
     # txsignal = wifitransmitter.WifiTransmitter('abcdefg', 4)
     # print(txsignal)
-    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('123,,,]\\\///[8971239812798471298473782146459718326498712364897123694786312897461238974678912364897123634897612389476123897467891236489712634897612389746', 4, 10)
+    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('123,,,]\\\///[8971239812798471298473782146459718326498712364897123694786312897461238974678912364897123634897612389476123897467891236489712634897612389746', 4, 6)
     print("input message length: ", total_length)
     print("actual noise length: ", padding_length)
     print(WifiReceiver(txsignal, 4))
