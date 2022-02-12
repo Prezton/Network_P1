@@ -99,6 +99,7 @@ def softViterbiDecode(message):
     # node_metric represents the shortest distance from beginning to this node
     node_metric = {0: 0, 1: float("inf"), 2: float("inf"), 3: float("inf")}
 
+    # path is used to mark the best routes for backtrace
     path = {0: [], 1: [], 2: [], 3: []}
     for symbol in message:
         for current_state in trellis:
@@ -106,6 +107,7 @@ def softViterbiDecode(message):
             prev_state_2 = list(trellis[current_state].keys())[1]
             distance_1 = node_metric[prev_state_1] + np.linalg.norm(trellis[current_state][prev_state_1][1] - symbol)
             distance_2 = node_metric[prev_state_2] + np.linalg.norm(trellis[current_state][prev_state_2][1] - symbol)
+            # Find the shortest path accordingly
             if distance_1 < distance_2:
                 # update shortest path value so far
                 node_metric[current_state] = distance_1
@@ -115,6 +117,7 @@ def softViterbiDecode(message):
                 path[current_state].append(prev_state_2)
 
     min_metric = float("inf")
+    # Find the end point
     for node in node_metric:
         if node_metric[node] < min_metric:
             min_node = node
@@ -123,6 +126,7 @@ def softViterbiDecode(message):
     idx = -1
     decoded_result = []
     decoded_length = len(message)
+    # Backtrace
     for i in range(decoded_length):
         prev_branch = path[min_node][idx]
         decoded_result.append(trellis[min_node][prev_branch][0])
@@ -141,7 +145,7 @@ def softViterbiDecode(message):
 if __name__ == "__main__":
     # txsignal = wifitransmitter.WifiTransmitter('abcdefg', 4)
     # print(txsignal)
-    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('123,,,]\\\///[8971239812798471298473782146459718326498712364897123694786312897461238974678912364897123634897612389476123897467891236489712634897612389746', 4, 6)
+    padding_length, txsignal, total_length = wifitransmitter.WifiTransmitter('hello world', 4, 6)
     print("input message length: ", total_length)
     print("actual noise length: ", padding_length)
     print(WifiReceiver(txsignal, 4))
